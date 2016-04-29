@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from Bio import SeqIO
+from itertools import dropwhile
 import argparse
 import os
 import random
@@ -12,9 +13,18 @@ def arguments():
 
     return parser.parse_args()
 
-def load_genome(handle: str) -> dict:
+def handle_input(filepath: str or sys.stdin) -> 'file_handle':
+
+    o = sys.stdin if filepath == '-' else open(filepath, 'r')
+
+    with o as f:
+        return f
+
+def load_genome(handle: 'file_handle') -> dict:
     """Parse FASTA formatted string"""
-    pass
+
+    g = {contig.id: str(contig.seq) for contig in SeqIO.parse(handle, 'fasta')}
+    return g
 
 def validate_ingroup(ingroup: list):
     """Use a set of high quality genomes of the target species
@@ -29,7 +39,7 @@ def validate_outgroup(ingroup: list):
     pass
 
 def contigify(mean: float, stdev: float) -> dict:
-    """Cut single-sequence genomes into artificial contigs based on 
+    """Cut single-sequence genomes into artificial contigs based on
     empirical distribution contig sizes in draft assemblies
     """
     pass
@@ -41,6 +51,24 @@ def select_subsequence(mean: float, stdev: float) -> str:
 def integrate(transposon: str, contig: str) -> str:
     """Take a gene-like subsequence and integrate it into a target contig"""
     pass
+
+def contaminate(contaminant: str, genome: dict) -> dict:
+    """Add a contamination contig to genome"""
+
+    def suffix_max(dictionary):
+
+        k = dictionary.keys()
+
+        o = int(''.join(dropwhile(lambda x: x not in map(str, range(10)), k)))
+        return o
+
+    # not strictly necessary, but makes the program easier to follow
+    contaminated_genome = dict(genome.items())
+
+    name = 'contamination_{}'.format(suffix_max(contaminated_genome) + 1)
+    contaminated_genome[name] = contaminant
+
+    return contaminated_genome
 
 def iterate():
     """Repeat a treatment with a random variable"""
