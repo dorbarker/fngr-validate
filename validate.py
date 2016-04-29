@@ -75,12 +75,15 @@ def integrate(transposon: str, contig: str, breakpoint: int) -> str:
 def contaminate(contaminant: str, genome: dict) -> dict:
     """Add a contamination contig to genome"""
 
-    def suffix_max(dictionary):
+    def suffix_max(dictionary: dict) -> int:
 
         k = dictionary.keys()
 
-        o = int(''.join(dropwhile(lambda x: x not in map(str, range(10)), k)))
-        return o
+        not_int = lambda x: x not in map(str, range(10))
+
+        suffix = lambda z: int(''.join(dropwhile(not_int, z)) or 0)
+
+        return max([suffix(key) for key in k)] or [0])
 
     # not strictly necessary, but makes the program easier to follow
     contaminated_genome = dict(genome.items())
