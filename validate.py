@@ -38,11 +38,29 @@ def validate_outgroup(ingroup: list):
     """
     pass
 
-def contigify(mean: float, stdev: float) -> dict:
+def contigify(sequence: str, mean: float, stdev: float) -> dict:
     """Cut single-sequence genomes into artificial contigs based on
     empirical distribution contig sizes in draft assemblies
     """
-    pass
+
+    def chunk_genome():
+
+        processed = 0
+        counter = 0
+
+        while processed < len(sequence):
+
+            counter += 1
+
+            n = int(random.gauss(mean, stdev))
+
+            chunk = sequence[processed:processed + n]
+
+            processed += n
+
+            yield 'contig_{:04d}'.format(counter), chunk
+
+    return dict(chunk_genome())
 
 def select_subsequence(mean: float, stdev: float) -> str:
     """Return a gene-like subsequence from a source genome"""
