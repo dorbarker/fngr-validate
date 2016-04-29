@@ -48,9 +48,11 @@ def select_subsequence(mean: float, stdev: float) -> str:
     """Return a gene-like subsequence from a source genome"""
     pass
 
-def integrate(transposon: str, contig: str) -> str:
+def integrate(transposon: str, contig: str, breakpoint: int) -> str:
     """Take a gene-like subsequence and integrate it into a target contig"""
-    pass
+
+    first, last = contig[:breakpoint], contig[breakpoint:]
+    return ''.join((first, transposon, last))
 
 def contaminate(contaminant: str, genome: dict) -> dict:
     """Add a contamination contig to genome"""
