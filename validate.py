@@ -62,9 +62,13 @@ def contigify(sequence: str, mean: float, stdev: float) -> dict:
 
     return dict(chunk_genome())
 
-def select_subsequence(mean: float, stdev: float) -> str:
+def select_subsequence(sequence: str, mean: float, stdev: float) -> str:
     """Return a gene-like subsequence from a source genome"""
-    pass
+
+    subseq_length = int(random.gauss(mean, stdev))
+    entry = random.randint(0, len(sequence) - subseq_length - 1)
+
+    return sequence[entry:entry + subseq_length]
 
 def integrate(transposon: str, contig: str, breakpoint: int) -> str:
     """Take a gene-like subsequence and integrate it into a target contig"""
