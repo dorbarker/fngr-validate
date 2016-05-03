@@ -4,6 +4,7 @@ from Bio import SeqIO
 from itertools import dropwhile
 import argparse
 import collections
+import compare
 import os
 import random
 import sys

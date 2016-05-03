@@ -18,9 +18,22 @@ def closest_indices(contig_expected):
 
     return _closest
 
-def call_type(locus):
+def call_type(locus_info):
 
-    pass
+    false_pos_conditions = (locus_info['indices']['coverage'] > 1.1,
+                            locus_info['indices']['coverage'] < 0.9,
+                            None in locus_info['indices']['closest_expected'])
+
+    if locus_info['contig_proportion'] >= 0.95:
+        out = 'contamination'
+
+    elif any(false_pos_conditions):
+        out = 'false_positive'
+
+    else:
+        out = 'foreign'
+
+    return out
 
 def compare(expected: dict, report: dict) -> dict:
 
@@ -36,8 +49,6 @@ def compare(expected: dict, report: dict) -> dict:
 
         for locus in report[contig]:
 
-            comparison['calls']['n_loci'] += 1
-
             found_index = Pair(locus['index']['start'], locus['index']['stop'])
 
             closest = find_closest(found_index.start, found_index.stop)
@@ -52,5 +63,12 @@ def compare(expected: dict, report: dict) -> dict:
                         'blast': locus['blast_hits'],
                         'kraken': locus['read_classification']}
 
-            locus_info = {'indices': indices, 'organism': organism}
+            locus_info = {'indices': indices, 'organism': organism,
+                          'contig_proportion': locus['length']['ratio']}
+
             locus_info['call'] = call_type(locus_info)
+
+            comparison['loci'][contig].append(locus_info)
+
+            comparison['calls']['n_loci'] += 1
+            comparison['calls'][locus_info['call']] += 1
