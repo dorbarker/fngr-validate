@@ -11,34 +11,52 @@ import sys
 
 def arguments():
 
+    def fasta(f):
+        if '.f' not in f:
+            msg = 'Requires FASTA files (*.fasta, *.f, *.fna, etc)'
+            raise argparse.ArgumentTypeError(msg)
+        return f
+
     parser = argparse.ArgumentParser()
+
+    data = parser.add_argument_group('Data', 'Input FASTA files')
+
+    data.add_argument('--ingroup', nargs='+', type=fasta, metavar='FASTAs',
+                      help='FASTA file(s) belonging to the target species')
+
+    data.add_argument('--outgroup', nargs='+', type=fasta, metavar='FASTAs',
+                      help='FASTA file(s) belonging to a different species')
 
     return parser.parse_args()
 
-def handle_input(filepath: str or sys.stdin) -> 'file_handle':
+def load_genomes(paths: list) -> dict:
 
-    o = sys.stdin if filepath == '-' else open(filepath, 'r')
+    def load_genome(filepath: str) -> dict:
+        """Parse FASTA formatted string"""
 
-    with o as f:
-        return f
+        with open(filepath) as f:
+            g = {contig.id: str(contig.seq) for contig in SeqIO.parse(f, 'fasta')}
+        return g
 
-def load_genome(handle: 'file_handle') -> dict:
-    """Parse FASTA formatted string"""
-
-    g = {contig.id: str(contig.seq) for contig in SeqIO.parse(handle, 'fasta')}
-    return g
+    return (load_genome for p in paths if '.f' in paths)
 
 def validate_ingroup(ingroup: list):
     """Use a set of high quality genomes of the target species
     to look for any spurious identification of 'foreign' sequence
     """
-    pass
 
-def validate_outgroup(ingroup: list):
+    for genome in load_genomes(ingroup):
+
+        random.seed(1)
+        # run contigified genomes; expected results are no foreign
+        genome_contigs = contigify(genome, mean, stdev)
+
+def validate_outgroup(outgroup: list):
     """Use a set of high quality genomes known not to be of the target
     species to validate that fngr correctly identifies foreign sequence
     """
-    pass
+    for genome in load_genome(outgroup):
+        # run as-is; expected results are nearly all foreign
 
 def contigify(sequence: str, mean: float, stdev: float) -> dict:
     """Cut single-sequence genomes into artificial contigs based on
@@ -104,7 +122,7 @@ def iterate():
     pass
 
 def main():
-    pass
 
+    args = arguments()
 if __name__ == '__main__':
     main()
