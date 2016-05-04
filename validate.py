@@ -58,27 +58,30 @@ def validate_outgroup(outgroup: list):
     for genome in load_genome(outgroup):
         # run as-is; expected results are nearly all foreign
 
-def contigify(sequence: str, mean: float, stdev: float) -> dict:
-    """Cut single-sequence genomes into artificial contigs based on
+def contigify(genome: dict, mean: float, stdev: float) -> dict:
+    """Cut genomes into artificial contigs based on
     empirical distribution contig sizes in draft assemblies
     """
 
     def chunk_genome():
 
-        processed = 0
         counter = 0
+        
+        for sequence in genome.values():
 
-        while processed < len(sequence):
+            processed = 0
 
-            counter += 1
+            while processed < len(sequence):
 
-            n = int(random.gauss(mean, stdev))
+                counter += 1
 
-            chunk = sequence[processed:processed + n]
+                n = int(random.gauss(mean, stdev))
 
-            processed += n
+                chunk = sequence[processed:processed + n]
 
-            yield 'contig_{:04d}'.format(counter), chunk
+                processed += n
+
+                yield 'contig_{:04d}'.format(counter), chunk
 
     return dict(chunk_genome())
 
