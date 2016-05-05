@@ -11,13 +11,13 @@ def fasta(f):
 
 class Fngr(object):
 
-    def __init__(self, fngr, organism, kraken_db, nt_db,
+    def __init__(self, prog, organism, kraken_db, nt_db,
                  threshold = 100, fragment = 250, cores = None):
 
-        self.fngr = fngr
+        self.prog = prog
         self.organism = organism
         self.kraken_db = kraken_db
-        self.nt_db = blast_db
+        self.nt_db = nt_db
         self.fragment = fragment
         self.threshold = threshold
         self.cores = cores or cpu_count()
@@ -26,16 +26,16 @@ class Fngr(object):
 
         assem = self._format_assembly(assembly)
 
-        cmd = ('python3', self.fngr,
+        cmd = ('python3', self.prog,
                '--organism', self.organism,
                '--kraken-database', self.kraken_db,
-               '--nt-database', self.blast_db,
-               '--threshold', self.threshold,
-               '--fragment', self.fragment,
-               '--cores', self.cores,
+               '--nt-database' if self.nt_db else '', self.nt_db or '',
+               '--threshold', str(self.threshold),
+               '--fragment', str(self.fragment),
+               '--cores', str(self.cores),
                '-')
 
-        out = subprocess.check_output(cmd, input = assem,
+        out = subprocess.check_output([x for x in cmd if x], input = assem,
                                       universal_newlines = True)
 
         return out  # JSON

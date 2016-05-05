@@ -12,7 +12,10 @@ import sys
 
 def arguments():
 
-    parser = argparse.ArgumentParser()
+    docs = {'description': 'A script for validating the output of fngr.py',
+            'epilog': 'Output is returned in JSON format to stdout'}
+
+    parser = argparse.ArgumentParser(**docs)
 
     data = parser.add_argument_group(title='Data',
                                      description='Input FASTA files')
@@ -28,6 +31,11 @@ def arguments():
 
     parms = parser.add_argument_group(title='Analysis Parameters',
                                       description='')
+
+
+    parms.add_argument('--organism', type=str.lower,
+                       metavar='TAXONOMY', required=True,
+                       help='Taxonomic name of target species')
 
     parms.add_argument('--contig-mean', type=float, metavar='NUM',
                        required=True, help='Mean size of synthetic contigs')
@@ -82,20 +90,25 @@ def load_genomes(paths: list) -> dict:
             g = {nucl.id: str(nucl.seq) for nucl in SeqIO.parse(f, 'fasta')}
         return g
 
-    return (load_genome for p in paths if '.f' in paths)
+    return (load_genome(p) for p in paths if '.f' in p)
 
-def validate_ingroup(ingroup: list):
+
+def validate_ingroup(ingroup: list, contig_mean: float, contig_stdev: float) -> list:
     """Use a set of high quality genomes of the target species
     to look for any spurious identification of 'foreign' sequence
     """
 
+    report = []
+    random.seed(1)  # reproducibility
     for genome in load_genomes(ingroup):
-
-        random.seed(1)  # reproducibility
-
         # run contigified genomes; expected results are no foreign loci
-        genome_contigs = contigify(genome, mean, stdev)
+        genome_contigs = contigify(genome, contig_mean, contig_stdev)
 
+        result = fngr.fngr(genome_contigs)
+
+        report.append(result)
+
+    return report
 
 def validate_outgroup(outgroup: list):
     """Use a set of high quality genomes known not to be of the target
@@ -166,6 +179,10 @@ def contaminate(contaminant: str, genome: dict) -> dict:
 
     return contaminated_genome
 
+def compare_to_expected():
+
+    pass
+
 def iterate():
     """Repeat a treatment with a random variable"""
     pass
@@ -173,5 +190,12 @@ def iterate():
 def main():
 
     args = arguments()
+
+    global fngr
+    fngr = Fngr(prog=args.fngr, organism=args.organism, cores=args.cores,
+                kraken_db=args.kraken_database, nt_db=args.nt_database)
+
+    print(validate_ingroup(args.ingroup, args.contig_mean, args.contig_stdev))
+
 if __name__ == '__main__':
     main()
