@@ -2,6 +2,7 @@
 
 from Bio import SeqIO
 from itertools import dropwhile
+from utilities import fasta, Fngr
 import argparse
 import collections
 import compare
@@ -11,21 +12,64 @@ import sys
 
 def arguments():
 
-    def fasta(f):
-        if '.f' not in f:
-            msg = 'Requires FASTA files (*.fasta, *.f, *.fna, etc)'
-            raise argparse.ArgumentTypeError(msg)
-        return f
-
     parser = argparse.ArgumentParser()
 
-    data = parser.add_argument_group('Data', 'Input FASTA files')
+    data = parser.add_argument_group(title='Data',
+                                     description='Input FASTA files')
 
-    data.add_argument('--ingroup', nargs='+', type=fasta, metavar='FASTAs',
+    data.add_argument('--ingroup', nargs='+', type=fasta,
+                      metavar='FASTAs', required=True,
                       help='FASTA file(s) belonging to the target species')
 
-    data.add_argument('--outgroup', nargs='+', type=fasta, metavar='FASTAs',
-                      help='FASTA file(s) belonging to a different species')
+    data.add_argument('--outgroup', nargs='+', type=fasta,
+                      metavar='FASTAs', required=True,
+                      help='FASTA file(s) serving as the source \
+                              of foreign sequence to the ingroup')
+
+    parms = parser.add_argument_group(title='Analysis Parameters',
+                                      description='')
+
+    parms.add_argument('--contig-mean', type=float, metavar='NUM',
+                       required=True, help='Mean size of synthetic contigs')
+
+    parms.add_argument('--contig-stdev', type=float,
+                       metavar='NUM', required=True,
+                       help='Standard deviation in synthetic contig lengths')
+
+    parms.add_argument('--insertion-mean', type=float,
+                       metavar='NUM', required=True,
+                       help='Mean length of foreign sequence insertions')
+
+    parms.add_argument('--insertion-stdev', type=float,
+                       metavar='NUM', required=True,
+                       help='Standard deviation in foreign \
+                            sequence insertions')
+
+    parms.add_argument('--contaminants', type=int,
+                       metavar='INT', required=True,
+                       help='Number of contaminating contigs \
+                            to add to each genome')
+
+    parms.add_argument('--integrations', type=int,
+                       metavar='INT', required=True,
+                       help='Number of transposon-like integrations of \
+                            foreign nucleotide sequence per recipient genome')
+
+    resources = parser.add_argument_group(title='Resources',
+                                          description='External resources \
+                                                      used by Fngr')
+
+    resources.add_argument('--fngr', required=True, metavar='PATH',
+                           help='Path to fngr.py')
+
+    resources.add_argument('--kraken-database', required=True, metavar='PATH',
+                           help='Path to Kraken database')
+
+    resources.add_argument('--nt-database', default=None, metavar='PATH',
+                           help='Path to NCBI `nt` database')
+
+    resources.add_argument('--cores', type=int, default=None, metavar='INT',
+                           help='Number of CPU cores to use [all]')
 
     return parser.parse_args()
 
@@ -35,7 +79,7 @@ def load_genomes(paths: list) -> dict:
         """Parse FASTA formatted string"""
 
         with open(filepath) as f:
-            g = {contig.id: str(contig.seq) for contig in SeqIO.parse(f, 'fasta')}
+            g = {nucl.id: str(nucl.seq) for nucl in SeqIO.parse(f, 'fasta')}
         return g
 
     return (load_genome for p in paths if '.f' in paths)
@@ -47,9 +91,11 @@ def validate_ingroup(ingroup: list):
 
     for genome in load_genomes(ingroup):
 
-        random.seed(1)
-        # run contigified genomes; expected results are no foreign
+        random.seed(1)  # reproducibility
+
+        # run contigified genomes; expected results are no foreign loci
         genome_contigs = contigify(genome, mean, stdev)
+
 
 def validate_outgroup(outgroup: list):
     """Use a set of high quality genomes known not to be of the target
@@ -57,7 +103,7 @@ def validate_outgroup(outgroup: list):
     """
     for genome in load_genome(outgroup):
         # run as-is; expected results are nearly all foreign
-
+        pass
 def contigify(genome: dict, mean: float, stdev: float) -> dict:
     """Cut genomes into artificial contigs based on
     empirical distribution contig sizes in draft assemblies
@@ -66,7 +112,7 @@ def contigify(genome: dict, mean: float, stdev: float) -> dict:
     def chunk_genome():
 
         counter = 0
-        
+
         for sequence in genome.values():
 
             processed = 0
