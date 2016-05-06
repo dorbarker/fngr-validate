@@ -32,7 +32,6 @@ def arguments():
     parms = parser.add_argument_group(title='Analysis Parameters',
                                       description='')
 
-
     parms.add_argument('--organism', type=str.lower,
                        metavar='TAXONOMY', required=True,
                        help='Taxonomic name of target species')
@@ -93,17 +92,69 @@ def load_genomes(paths: list) -> dict:
     return (load_genome(p) for p in paths if '.f' in p)
 
 
-def validate_group(group: list, contig_mean: float, contig_stdev: float) -> list:
+def validate_group(group: list, contig_mean: float,
+                   contig_stdev: float) -> list:
     """Use a set of high quality genomes to look for any spurious
     identification of 'foreign' sequence
     """
 
-    def fngr_contigs(seed, genome):
+    def fngr_contigs(genome, seed):
 
         random.seed(seed)
         return fngr.fngr(contigify(genome, contig_mean, contig_stdev))
 
-    return [fngr_contigs(s, g) for s, g in enumerate(load_genomes(group)]
+    return [fngr_contigs(g, s) for s, g in enumerate(load_genomes(group))]
+
+def validate_insertions(sources: list, recipients: list,
+                        mean: float, stdev: float, iterations: int) -> list:
+
+    def fngr_insertion(source: dict, recipient: dict) -> (dict, str, int, int):
+
+        source_contig = random.choice(source.values())
+        recipient_contig_name = random.choice(recipient.keys())
+
+        recipient_contig = recipient[recipient_contig_name]
+
+        transposon, source_entry = select_subsequence(sequence=source_contig,
+                                                      mean=mean, stdev=stdev)
+
+        pivot = random.randint(0, len(recipient_contig))
+
+        recipient[recipient_contig_name] = integrate(transposon,
+                                                     recipient_contig, pivot)
+
+        return recipient, recipient_contig_name, pivot, len(transposon)
+
+    def prepare_insert_func(sources: list, mean: float, stdev: float,
+                            iterations: int) -> 'function':
+
+        def _func(recipient: dict, seed: int) -> (dict, (str, int, int)):
+
+            random.seed(seed)
+
+            source = random.choice(sources)
+
+            insertion_metadata = []
+
+            Metadata = namedtuple('Metadata', ['contig', 'pivot', 'length'])
+
+            for _ in range(iterations):
+                recipient, contig, pivot, length = fngr_insertion(source,
+                                                                  recipient)
+
+                insertion_metadata.append(Metadata(contig, pivot, length))
+
+            return recipient, insertion_metadata
+
+        return _func
+
+    # eliminate side effects of dict alterations being passed back
+    # up to other areas of the script
+    genomes = [dict(recipient.items()) for recipient in recipients]
+
+    insert = prepare_insert_func(sources, mean, stdev, iterations)
+
+    return [insert(recipient, seed) for recipient, seed in enumerate(genomes)]
 
 def contigify(genome: dict, mean: float, stdev: float) -> dict:
     """Cut genomes into artificial contigs based on
@@ -132,18 +183,18 @@ def contigify(genome: dict, mean: float, stdev: float) -> dict:
 
     return dict(chunk_genome())
 
-def select_subsequence(sequence: str, mean: float, stdev: float) -> str:
+def select_subsequence(sequence: str, mean: float, stdev: float) -> (str, int):
     """Return a gene-like subsequence from a source genome"""
 
     subseq_length = int(random.gauss(mean, stdev))
     entry = random.randint(0, len(sequence) - subseq_length - 1)
 
-    return sequence[entry:entry + subseq_length]
+    return sequence[entry:entry + subseq_length], entry
 
-def integrate(transposon: str, contig: str, breakpoint: int) -> str:
+def integrate(transposon: str, contig: str, pivot: int) -> str:
     """Take a gene-like subsequence and integrate it into a target contig"""
 
-    first, last = contig[:breakpoint], contig[breakpoint:]
+    first, last = contig[:pivot], contig[pivot:]
     return ''.join((first, transposon, last))
 
 def contaminate(contaminant: str, genome: dict) -> dict:
