@@ -93,30 +93,18 @@ def load_genomes(paths: list) -> dict:
     return (load_genome(p) for p in paths if '.f' in p)
 
 
-def validate_ingroup(ingroup: list, contig_mean: float, contig_stdev: float) -> list:
-    """Use a set of high quality genomes of the target species
-    to look for any spurious identification of 'foreign' sequence
+def validate_group(group: list, contig_mean: float, contig_stdev: float) -> list:
+    """Use a set of high quality genomes to look for any spurious
+    identification of 'foreign' sequence
     """
 
-    report = []
-    random.seed(1)  # reproducibility
-    for genome in load_genomes(ingroup):
-        # run contigified genomes; expected results are no foreign loci
-        genome_contigs = contigify(genome, contig_mean, contig_stdev)
+    def fngr_contigs(seed, genome):
 
-        result = fngr.fngr(genome_contigs)
+        random.seed(seed)
+        return fngr.fngr(contigify(genome, contig_mean, contig_stdev))
 
-        report.append(result)
+    return [fngr_contigs(s, g) for s, g in enumerate(load_genomes(group)]
 
-    return report
-
-def validate_outgroup(outgroup: list):
-    """Use a set of high quality genomes known not to be of the target
-    species to validate that fngr correctly identifies foreign sequence
-    """
-    for genome in load_genome(outgroup):
-        # run as-is; expected results are nearly all foreign
-        pass
 def contigify(genome: dict, mean: float, stdev: float) -> dict:
     """Cut genomes into artificial contigs based on
     empirical distribution contig sizes in draft assemblies
