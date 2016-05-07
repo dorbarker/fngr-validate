@@ -2,7 +2,7 @@
 
 from Bio import SeqIO
 from itertools import dropwhile
-from utilities import fasta, Fngr
+from utilities import fasta, Fngr, Result
 import argparse
 import collections
 import compare
@@ -145,7 +145,7 @@ def validate_insertions(sources: list, recipients: list,
 
                 insertion_metadata.append(Metadata(contig, pivot, length))
 
-            return recipient, insertion_metadata
+            return Result(recipient, insertion_metadata)
 
         return _func
 
@@ -222,7 +222,7 @@ def contaminate_genomes(sources: list, recipients: list, contig_mean: float,
 
                 contamination_metadata.append(Metadata(contig, length))
 
-            return recipient, contamination_metadata
+            return Result(recipient, contamination_metadata)
         return _func
 
     genomes = [dict(recipient.items()) for recipient in recipients]
@@ -244,9 +244,6 @@ def contaminate(contaminant: str, genome: dict) -> (dict, str, int):
 
         return max([suffix(key) for key in k] or [0])
 
-    # not strictly necessary, but makes the program easier to follow
-    contaminated_genome = dict(genome.items())
-
     name = 'contamination_{}'.format(suffix_max(contaminated_genome) + 1)
     contaminated_genome[name] = contaminant
 
@@ -254,10 +251,6 @@ def contaminate(contaminant: str, genome: dict) -> (dict, str, int):
 
 def compare_to_expected():
 
-    pass
-
-def iterate():
-    """Repeat a treatment with a random variable"""
     pass
 
 def main():

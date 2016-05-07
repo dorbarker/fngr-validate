@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 import subprocess
+import collections
 from multiprocessing import cpu_count
+
+Result = collections.namedtuple('Results', ['result', 'metadata'])
 
 def fasta(f):
     if '.f' not in f:
