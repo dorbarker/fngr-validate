@@ -136,7 +136,8 @@ def validate_insertions(sources: list, recipients: list,
 
             insertion_metadata = []
 
-            Metadata = namedtuple('Metadata', ['contig', 'pivot', 'length'])
+            Metadata = collections.namedtuple('Metadata',
+                                              ['contig', 'pivot', 'length'])
 
             for _ in range(iterations):
                 recipient, contig, pivot, length = fngr_insertion(source,
@@ -154,7 +155,7 @@ def validate_insertions(sources: list, recipients: list,
 
     insert = prepare_insert_func(sources, mean, stdev, iterations)
 
-    return [insert(recipient, seed) for recipient, seed in enumerate(genomes)]
+    return [insert(recipient, seed) for seed, recipient in enumerate(genomes)]
 
 def contigify(genome: dict, mean: float, stdev: float) -> dict:
     """Cut genomes into artificial contigs based on
@@ -197,7 +198,40 @@ def integrate(transposon: str, contig: str, pivot: int) -> str:
     first, last = contig[:pivot], contig[pivot:]
     return ''.join((first, transposon, last))
 
-def contaminate(contaminant: str, genome: dict) -> dict:
+def contaminate_genomes(sources: list, recipients: list, contig_mean: float,
+                        contig_stdev: float, interations: int):
+
+    def contaminate_func(sources: list, mean: float,
+                         stdev: float, iterations: int) -> 'function':
+
+        def _func(recipient: dict, seed: int) -> (dict, (str, int)):
+
+            random.seed(seed)
+
+            source = random.choice(sources)
+
+            contamination_metadata = []
+
+            Metadata = collections.namedtuple('Metadata', ['contig', 'length'])
+
+            for _ in range(iterations):
+
+                contaminant = random.choice(source.values())
+
+                recipient, contig, length = contaminate(contaminant, recipient)
+
+                contamination_metadata.append(Metadata(contig, length))
+
+            return recipient, contamination_metadata
+        return _func
+
+    genomes = [dict(recipient.items()) for recipient in recipients]
+
+    add_contamination = contaminate_func(sources, mean, stdev, interations)
+
+    return [add_contamination(r, s) for s, r in enumerate(recipients)]
+
+def contaminate(contaminant: str, genome: dict) -> (dict, str, int):
     """Add a contamination contig to genome"""
 
     def suffix_max(dictionary: dict) -> int:
@@ -216,7 +250,7 @@ def contaminate(contaminant: str, genome: dict) -> dict:
     name = 'contamination_{}'.format(suffix_max(contaminated_genome) + 1)
     contaminated_genome[name] = contaminant
 
-    return contaminated_genome
+    return contaminated_genome, name, len(contaminant)
 
 def compare_to_expected():
 
