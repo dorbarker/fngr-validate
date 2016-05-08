@@ -62,6 +62,17 @@ def arguments():
                        help='Number of transposon-like integrations of \
                             foreign nucleotide sequence per recipient genome')
 
+    parms.add_argument('--iterations', type=int, metavar='INT', default=10,
+                       help='Number of iterations of each test to perform [10]')
+
+    parms.add_argument('--fragment', type=int, metavar='INT', default=250,
+                       help='Pseudoread size (bp) into which Fngr divides \
+                            assemblies for kraken [250]')
+
+    parser.add_argument('--threshold', type=int, metavar='INT', default=100,
+                        help='Number of consecutive reads required to \
+                             call a sequence foreign [100]')
+
     resources = parser.add_argument_group(title='Resources',
                                           description='External resources \
                                                       used by Fngr')
@@ -244,10 +255,10 @@ def contaminate(contaminant: str, genome: dict) -> (dict, str, int):
 
         return max([suffix(key) for key in k] or [0])
 
-    name = 'contamination_{}'.format(suffix_max(contaminated_genome) + 1)
-    contaminated_genome[name] = contaminant
+    name = 'contamination_{}'.format(suffix_max(genome) + 1)
+    genome[name] = contaminant
 
-    return contaminated_genome, name, len(contaminant)
+    return genome, name, len(contaminant)
 
 def compare_to_expected():
 
@@ -258,8 +269,9 @@ def main():
     args = arguments()
 
     global fngr
-    fngr = Fngr(prog=args.fngr, organism=args.organism, cores=args.cores,
-                kraken_db=args.kraken_database, nt_db=args.nt_database)
+    fngr = Fngr(prog=args.fngr, organism=args.organism, fragment=args.fragment,
+                threshold=args.threshold, kraken_db=args.kraken_database,
+                nt_db=args.nt_database, cores=args.cores)
 
     print(validate_ingroup(args.ingroup, args.contig_mean, args.contig_stdev))
 
