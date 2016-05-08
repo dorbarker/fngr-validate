@@ -4,6 +4,8 @@ import subprocess
 import collections
 from multiprocessing import cpu_count
 
+Metadata = collections.namedtuple('Metadata', ['contig', 'start', 'length'])
+
 Result = collections.namedtuple('Results', ['result', 'metadata'])
 
 def fasta(f):
