@@ -45,7 +45,7 @@ def compare(expected: dict, report: dict) -> dict:
 
     for contig in report:
 
-        find_closest = closest_indices(expected[contig])
+        find_closest = closest_indices(expected['contigs'][contig])
 
         for locus in report[contig]:
 
@@ -72,3 +72,12 @@ def compare(expected: dict, report: dict) -> dict:
 
             comparison['calls']['n_loci'] += 1
             comparison['calls'][locus_info['call']] += 1
+
+def parse_metadata(metadata: list, organism: str) -> dict:
+
+    expected = {'organism': organism, 'contigs': collections.defaultdict(list)}
+
+    for m in metadata:
+        expected['contigs'][m.contig].append(Pair(m.start, m.start + m.length))
+
+    return expected
