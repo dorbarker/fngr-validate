@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-from Bio import SeqIO
 from itertools import dropwhile
-from utilities import fasta, Fngr, Metadata, Result
 import argparse
 import collections
 import compare
 import os
 import random
 import sys
+import utilities
 
 def arguments():
 
@@ -20,11 +19,11 @@ def arguments():
     data = parser.add_argument_group(title='Data',
                                      description='Input FASTA files')
 
-    data.add_argument('--ingroup', nargs='+', type=fasta,
+    data.add_argument('--ingroup', nargs='+', type=utilities.fasta,
                       metavar='FASTAs', required=True,
                       help='FASTA file(s) belonging to the target species')
 
-    data.add_argument('--outgroup', nargs='+', type=fasta,
+    data.add_argument('--outgroup', nargs='+', type=utilities.fasta,
                       metavar='FASTAs', required=True,
                       help='FASTA file(s) serving as the source \
                               of foreign sequence to the ingroup')
@@ -91,17 +90,6 @@ def arguments():
 
     return parser.parse_args()
 
-def load_genomes(paths: list) -> dict:
-
-    def load_genome(filepath: str) -> dict:
-        """Parse FASTA formatted string"""
-
-        with open(filepath) as f:
-            g = {nucl.id: str(nucl.seq) for nucl in SeqIO.parse(f, 'fasta')}
-        return g
-
-    return (load_genome(p) for p in paths if '.f' in p)
-
 
 def validate_group(group: list, contig_mean: float,
                    contig_stdev: float) -> list:
@@ -114,7 +102,7 @@ def validate_group(group: list, contig_mean: float,
         random.seed(seed)
         return fngr.fngr(contigify(genome, contig_mean, contig_stdev))
 
-    return [fngr_contigs(g, s) for s, g in enumerate(load_genomes(group))]
+    return [fngr_contigs(g, s) for s, g in enumerate(group))]
 
 def validate_insertions(sources: list, recipients: list,
                         mean: float, stdev: float, iterations: int) -> list:
@@ -157,40 +145,9 @@ def validate_insertions(sources: list, recipients: list,
 
         return _func
 
-    # eliminate side effects of dict alterations being passed back
-    # up to other areas of the script
-    genomes = [dict(recipient.items()) for recipient in recipients]
-
     insert = prepare_insert_func(sources, mean, stdev, iterations)
 
     return [insert(recipient, seed) for seed, recipient in enumerate(genomes)]
-
-def contigify(genome: dict, mean: float, stdev: float) -> dict:
-    """Cut genomes into artificial contigs based on
-    empirical distribution contig sizes in draft assemblies
-    """
-
-    def chunk_genome():
-
-        counter = 0
-
-        for sequence in genome.values():
-
-            processed = 0
-
-            while processed < len(sequence):
-
-                counter += 1
-
-                n = int(random.gauss(mean, stdev))
-
-                chunk = sequence[processed:processed + n]
-
-                processed += n
-
-                yield 'contig_{:04d}'.format(counter), chunk
-
-    return dict(chunk_genome())
 
 def select_subsequence(sequence: str, mean: float, stdev: float) -> (str, int):
     """Return a gene-like subsequence from a source genome"""
@@ -231,8 +188,6 @@ def contaminate_genomes(sources: list, recipients: list, contig_mean: float,
             return Result(recipient, contamination_metadata)
         return _func
 
-    genomes = [dict(recipient.items()) for recipient in recipients]
-
     add_contamination = contaminate_func(sources, mean, stdev, interations)
 
     return [add_contamination(r, s) for s, r in enumerate(recipients)]
@@ -264,9 +219,11 @@ def main():
     args = arguments()
 
     global fngr
-    fngr = Fngr(prog=args.fngr, organism=args.organism, fragment=args.fragment,
-                threshold=args.threshold, kraken_db=args.kraken_database,
-                nt_db=args.nt_database, cores=args.cores)
+    fngr = utilities.Fngr(prog=args.fngr, organism=args.organism,
+                          fragment=args.fragment, threshold=args.threshold,
+                          kraken_db=args.kraken_database,
+                          nt_db=args.nt_database,
+                          cores=args.cores)
 
     print(validate_ingroup(args.ingroup, args.contig_mean, args.contig_stdev))
 

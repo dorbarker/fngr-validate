@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
-import subprocess
-import collections
+from Bio import SeqIO
+from functools import partial, wraps
 from multiprocessing import cpu_count
+import collections
+import random
+import subprocess
 
 Metadata = collections.namedtuple('Metadata', ['contig', 'start', 'length'])
 
@@ -13,6 +16,60 @@ def fasta(f):
         msg = 'Requires FASTA files (*.fasta, *.f, *.fna, etc)'
         raise argparse.ArgumentTypeError(msg)
     return f
+
+def load_genomes(paths: list) -> dict:
+
+    def load_genome(filepath: str) -> dict:
+        """Parse FASTA formatted string"""
+
+        with open(filepath) as f:
+            g = {nucl.id: str(nucl.seq) for nucl in SeqIO.parse(f, 'fasta')}
+        return g
+
+    return (load_genome(p) for p in paths if '.f' in p)
+
+def contigify(genome: dict, mean: float, stdev: float) -> dict:
+    """Cut genomes into artificial contigs based on
+    empirical distribution contig sizes in draft assemblies
+    """
+
+    def chunk_genome():
+
+        counter = 0
+
+        for sequence in genome.values():
+
+            processed = 0
+
+            while processed < len(sequence):
+
+                counter += 1
+
+                n = int(random.gauss(mean, stdev))
+
+                chunk = sequence[processed:processed + n]
+
+                processed += n
+
+                yield 'contig_{:04d}'.format(counter), chunk
+
+    return dict(chunk_genome())
+
+def prepare_genomes(contig_mean: float, contig_stdev: float):
+
+    @wraps(func)
+    def wrapper(func):
+
+        contigulate = partial(contigify, mean=contig_mean, stdev=contig_stdev)
+
+        def wrapped(sources: list, recipients: list):
+
+            sources_ = [contigulate(genome) for genome in sources]
+            recipients_ = [contigulate(genome) for genome in recipients]
+
+            return func(sources_, recipients_)
+        return wrapped
+    return wrapper
 
 class Fngr(object):
 
