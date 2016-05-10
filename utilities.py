@@ -6,10 +6,13 @@ from multiprocessing import cpu_count
 import collections
 import random
 import subprocess
+import sys
 
 Metadata = collections.namedtuple('Metadata', ['contig', 'start', 'length'])
 
 Result = collections.namedtuple('Results', ['result', 'metadata'])
+
+user_msg = partial(print, file=sys.stderr)
 
 def fasta(f):
     if '.f' not in f:

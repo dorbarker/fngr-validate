@@ -62,7 +62,7 @@ def arguments():
                             foreign nucleotide sequence per recipient genome')
 
     parms.add_argument('--iterations', type=int, metavar='INT', default=10,
-                       help='Number of iterations of each test to perform [10]')
+                       help='Iterations of each test to perform [10]')
 
     parms.add_argument('--fragment', type=int, metavar='INT', default=250,
                        help='Pseudoread size (bp) into which Fngr divides \
@@ -90,122 +90,6 @@ def arguments():
 
     return parser.parse_args()
 
-
-def validate_groups(sources: list, recipients:list) -> list:
-    """Use a set of high quality genomes to look for any spurious
-    identification of 'foreign' sequence
-    """
-
-    src_validated = [fngr.fngr(genome) for genome in sources]
-    recip_validated = [fngr.fngr(genome) for genome in recipients]
-
-    return src_validated, recip_validated
-
-def validate_insertions(sources: list, recipients: list,
-                        mean: float, stdev: float, iterations: int) -> list:
-
-    def fngr_insertion(source: dict, recipient: dict) -> (dict, str, int, int):
-
-        source_contig = random.choice(source.values())
-        recipient_contig_name = random.choice(recipient.keys())
-
-        recipient_contig = recipient[recipient_contig_name]
-
-        transposon, source_entry = select_subsequence(sequence=source_contig,
-                                                      mean=mean, stdev=stdev)
-
-        pivot = random.randint(0, len(recipient_contig))
-
-        recipient[recipient_contig_name] = integrate(transposon,
-                                                     recipient_contig, pivot)
-
-        return recipient, recipient_contig_name, pivot, len(transposon)
-
-    def prepare_insert_func(sources: list, mean: float, stdev: float,
-                            iterations: int) -> 'function':
-
-        def _func(recipient: dict, seed: int) -> (dict, (str, int, int)):
-
-            random.seed(seed)
-
-            source = random.choice(sources)
-
-            insertion_metadata = []
-
-            for _ in range(iterations):
-                recipient, contig, pivot, length = fngr_insertion(source,
-                                                                  recipient)
-
-                insertion_metadata.append(Metadata(contig, pivot, length))
-
-            return Result(recipient, insertion_metadata)
-
-        return _func
-
-    insert = prepare_insert_func(sources, mean, stdev, iterations)
-
-    return [insert(recipient, seed) for seed, recipient in enumerate(genomes)]
-
-def select_subsequence(sequence: str, mean: float, stdev: float) -> (str, int):
-    """Return a gene-like subsequence from a source genome"""
-
-    subseq_length = int(random.gauss(mean, stdev))
-    entry = random.randint(0, len(sequence) - subseq_length - 1)
-
-    return sequence[entry:entry + subseq_length], entry
-
-def integrate(transposon: str, contig: str, pivot: int) -> str:
-    """Take a gene-like subsequence and integrate it into a target contig"""
-
-    first, last = contig[:pivot], contig[pivot:]
-    return ''.join((first, transposon, last))
-
-def validate_contamination(sources: list, recipients: list, iterations: int):
-
-    def contaminate_func(sources: list, mean: float,
-                         stdev: float, iterations: int) -> 'function':
-
-        def _func(recipient: dict, seed: int) -> (dict, (str, int)):
-
-            random.seed(seed)
-
-            source = random.choice(sources)
-
-            contamination_metadata = []
-
-            for _ in range(iterations):
-
-                contaminant = random.choice(source.values())
-
-                recipient, contig, length = contaminate(contaminant, recipient)
-
-                contamination_metadata.append(Metadata(contig, 0, length))
-
-            return Result(recipient, contamination_metadata)
-        return _func
-
-    add_contamination = contaminate_func(sources, mean, stdev, interations)
-
-    return [add_contamination(r, s) for s, r in enumerate(recipients)]
-
-def contaminate(contaminant: str, genome: dict) -> (dict, str, int):
-    """Add a contamination contig to genome"""
-
-    def suffix_max(dictionary: dict) -> int:
-
-        k = dictionary.keys()
-
-        not_int = lambda x: x not in map(str, range(10))
-
-        suffix = lambda z: int(''.join(dropwhile(not_int, z)) or 0)
-
-        return max([suffix(key) for key in k] or [0])
-
-    name = 'contamination_{}'.format(suffix_max(genome) + 1)
-    genome[name] = contaminant
-
-    return genome, name, len(contaminant)
-
 def compare_to_expected():
 
     pass
@@ -214,7 +98,6 @@ def main():
 
     args = arguments()
 
-    global fngr
     fngr = utilities.Fngr(prog=args.fngr, organism=args.organism,
                           fragment=args.fragment, threshold=args.threshold,
                           kraken_db=args.kraken_database,
