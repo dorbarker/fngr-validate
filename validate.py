@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 
-from itertools import dropwhile
 import argparse
-import collections
 import compare
 import os
-import random
-import sys
 import utilities
+import validators
 
 def arguments():
 
@@ -51,16 +48,6 @@ def arguments():
                        help='Standard deviation in foreign \
                             sequence insertions')
 
-    parms.add_argument('--contaminants', type=int,
-                       metavar='INT', required=True,
-                       help='Number of contaminating contigs \
-                            to add to each genome')
-
-    parms.add_argument('--integrations', type=int,
-                       metavar='INT', required=True,
-                       help='Number of transposon-like integrations of \
-                            foreign nucleotide sequence per recipient genome')
-
     parms.add_argument('--iterations', type=int, metavar='INT', default=10,
                        help='Iterations of each test to perform [10]')
 
@@ -68,8 +55,8 @@ def arguments():
                        help='Pseudoread size (bp) into which Fngr divides \
                             assemblies for kraken [250]')
 
-    parser.add_argument('--threshold', type=int, metavar='INT', default=100,
-                        help='Number of consecutive reads required to \
+    parms.add_argument('--threshold', type=int, metavar='INT', default=100,
+                       help='Number of consecutive reads required to \
                              call a sequence foreign [100]')
 
     resources = parser.add_argument_group(title='Resources',
@@ -90,10 +77,6 @@ def arguments():
 
     return parser.parse_args()
 
-def compare_to_expected():
-
-    pass
-
 def main():
 
     args = arguments()
@@ -104,7 +87,14 @@ def main():
                           nt_db=args.nt_database,
                           cores=args.cores)
 
-    print(validate_ingroup(args.ingroup, args.contig_mean, args.contig_stdev))
+    results = validators.validate(sources=args.outgroup,
+                                  recipients=args.ingroup,
+                                  gene_mean=args.insertion_mean,
+                                  gene_stdev=args.insertion_stdev,
+                                  contig_mean=args.contig_mean,
+                                  contig_stdev=args.contig_stdev,
+                                  iterations=args.iterations,
+                                  fngr=fngr)
 
 if __name__ == '__main__':
     main()

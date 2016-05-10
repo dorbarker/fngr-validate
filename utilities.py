@@ -67,8 +67,11 @@ def prepare_genomes(contig_mean: float, contig_stdev: float):
 
         def wrapped(sources: list, recipients: list):
 
-            sources_ = [contigulate(genome) for genome in sources]
-            recipients_ = [contigulate(genome) for genome in recipients]
+            sources_ = [contigulate(genome)
+                        for genome in load_genomes(sources)]
+
+            recipients_ = [contigulate(genome)
+                           for genome in load_genomes(recipients)]
 
             return func(sources_, recipients_)
         return wrapped
