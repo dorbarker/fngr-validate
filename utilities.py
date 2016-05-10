@@ -17,7 +17,7 @@ def fasta(f):
         raise argparse.ArgumentTypeError(msg)
     return f
 
-def load_genomes(paths: list) -> dict:
+def load_genomes(paths: list) -> 'generator':
 
     def load_genome(filepath: str) -> dict:
         """Parse FASTA formatted string"""

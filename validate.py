@@ -91,18 +91,15 @@ def arguments():
     return parser.parse_args()
 
 
-def validate_group(group: list, contig_mean: float,
-                   contig_stdev: float) -> list:
+def validate_groups(sources: list, recipients:list) -> list:
     """Use a set of high quality genomes to look for any spurious
     identification of 'foreign' sequence
     """
 
-    def fngr_contigs(genome, seed):
+    src_validated = [fngr.fngr(genome) for genome in sources]
+    recip_validated = [fngr.fngr(genome) for genome in recipients]
 
-        random.seed(seed)
-        return fngr.fngr(contigify(genome, contig_mean, contig_stdev))
-
-    return [fngr_contigs(g, s) for s, g in enumerate(group))]
+    return src_validated, recip_validated
 
 def validate_insertions(sources: list, recipients: list,
                         mean: float, stdev: float, iterations: int) -> list:
@@ -163,8 +160,7 @@ def integrate(transposon: str, contig: str, pivot: int) -> str:
     first, last = contig[:pivot], contig[pivot:]
     return ''.join((first, transposon, last))
 
-def contaminate_genomes(sources: list, recipients: list, contig_mean: float,
-                        contig_stdev: float, interations: int):
+def validate_contamination(sources: list, recipients: list, iterations: int):
 
     def contaminate_func(sources: list, mean: float,
                          stdev: float, iterations: int) -> 'function':
