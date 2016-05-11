@@ -58,23 +58,19 @@ def contigify(genome: dict, mean: float, stdev: float) -> dict:
 
     return dict(chunk_genome())
 
-def prepare_genomes(contig_mean: float, contig_stdev: float):
-
+def prepare_genomes(func, contig_mean: float, contig_stdev: float):
     @wraps(func)
-    def wrapper(func):
+    def wrapper(sources: list, recipients: list, *args):
 
         contigulate = partial(contigify, mean=contig_mean, stdev=contig_stdev)
 
-        def wrapped(sources: list, recipients: list):
+        sources_ = [contigulate(genome)
+                    for genome in load_genomes(sources)]
 
-            sources_ = [contigulate(genome)
-                        for genome in load_genomes(sources)]
+        recipients_ = [contigulate(genome)
+                       for genome in load_genomes(recipients)]
 
-            recipients_ = [contigulate(genome)
-                           for genome in load_genomes(recipients)]
-
-            return func(sources_, recipients_)
-        return wrapped
+        return func(sources_, recipients_, *args)
     return wrapper
 
 class Fngr(object):

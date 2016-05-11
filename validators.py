@@ -29,8 +29,8 @@ def validate(sources: list, recipients: list,
         def fngr_insertion(source: dict, recipient: dict) -> (dict, str,
                                                               int, int):
 
-            source_contig = random.choice(source.values())
-            recipient_contig_name = random.choice(recipient.keys())
+            source_contig = random.choice(list(source.values()))
+            recipient_contig_name = random.choice(list(recipient.keys()))
 
             recipient_contig = recipient[recipient_contig_name]
 
@@ -104,7 +104,7 @@ def validate(sources: list, recipients: list,
 
                 for _ in range(iterations):
 
-                    contaminant = random.choice(source.values())
+                    contaminant = random.choice(list(source.values()))
 
                     recipient, contig, length = contaminate(contaminant,
                                                             recipient)
