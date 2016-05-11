@@ -73,11 +73,20 @@ def compare(expected: dict, report: dict) -> dict:
             comparison['calls']['n_loci'] += 1
             comparison['calls'][locus_info['call']] += 1
 
-def parse_metadata(metadata: list, organism: str) -> dict:
+def create_expected(results: list, organism: str) -> list: 
+    def parse_metadata(metadata: list) -> dict:
 
-    expected = {'organism': organism, 'contigs': collections.defaultdict(list)}
+        expected = {'organism': organism, 'contigs': collections.defaultdict(list)}
 
-    for m in metadata:
-        expected['contigs'][m.contig].append(Pair(m.start, m.start + m.length))
+        for m in metadata:
 
-    return expected
+            try:
+                p = Pair(m.start, m.start + m.length)
+            except TypeError:
+                p = Pair(None, None)
+
+            expected['contigs'][m.contig].append(p)
+
+        return expected
+
+    return [parse_metadata(result.metadata) for result in results]

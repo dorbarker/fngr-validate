@@ -9,7 +9,8 @@ def validate(sources: list, recipients: list,
              iterations: int, fngr: object):
 
     duplicate_and_contigify = partial(prepare_genomes,
-                                      contig_mean, contig_stdev)
+                                      contig_mean=contig_mean,
+                                      contig_stdev=contig_stdev)
 
     @duplicate_and_contigify
     def validate_groups(sources: list, recipients: list) -> list:
@@ -17,8 +18,13 @@ def validate(sources: list, recipients: list,
         identification of 'foreign' sequence
         """
 
-        src_validated = [fngr.fngr(genome) for genome in sources]
-        recip_validated = [fngr.fngr(genome) for genome in recipients]
+        metadata = [Metadata(None, None, None)]
+
+        src_validated = [Result(fngr.fngr(src), metadata)
+                         for src in sources]
+
+        recip_validated = [Result(fngr.fngr(rec), metadata)
+                           for rec in recipients]
 
         return src_validated, recip_validated
 
@@ -91,8 +97,7 @@ def validate(sources: list, recipients: list,
     def validate_contamination(sources: list, recipients: list,
                                iterations: int) -> list:
 
-        def contaminate_func(sources: list, mean: float,
-                             stdev: float, iterations: int) -> 'function':
+        def contaminate_func(sources: list, iterations: int) -> 'function':
 
             def _func(recipient: dict, seed: int) -> (dict, (str, int)):
 
@@ -111,13 +116,12 @@ def validate(sources: list, recipients: list,
 
                     contamination_metadata.append(Metadata(contig, 0, length))
 
-                    return Result(fngr.fngr(recipient), contamination_metadata)
-                return _func
+                return Result(fngr.fngr(recipient), contamination_metadata)
+            return _func
 
-            add_contamination = contaminate_func(sources, mean, stdev,
-                                                 iterations)
+        add_contamination = contaminate_func(sources, iterations)
 
-            return [add_contamination(r, s) for s, r in enumerate(recipients)]
+        return [add_contamination(r, s) for s, r in enumerate(recipients)]
 
     def contaminate(contaminant: str, genome: dict) -> (dict, str, int):
         """Add a contamination contig to genome"""
@@ -140,17 +144,16 @@ def validate(sources: list, recipients: list,
     user_msg('Validating unmodified genomes')
     source_validated, recipient_validated = validate_groups(sources,
                                                             recipients)
-
     user_msg('Validating insertions')
-    insertion_validation = validate_insertions(sources, recipients,
+    insertion_validated = validate_insertions(sources, recipients,
                                                gene_mean, gene_stdev,
                                                iterations)
 
     user_msg('Validating contamination')
-    contamination_validation = validate_contamination(sources, recipients,
+    contamination_validated = validate_contamination(sources, recipients,
                                                       iterations)
 
     return {'sources_clean': source_validated,
             'recipients_clean': recipient_validated,
-            'insertions': insertion_validation,
-            'contamination': contamination_validation}
+            'insertions': insertion_validated,
+            'contamination': contamination_validated}

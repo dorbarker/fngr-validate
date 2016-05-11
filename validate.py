@@ -96,5 +96,8 @@ def main():
                                   iterations=args.iterations,
                                   fngr=fngr)
 
+    expected = {result: compare.create_expected(results[result], 'ecoli')
+                for result in results}
+    print(expected)
 if __name__ == '__main__':
     main()
