@@ -20,11 +20,11 @@ def validate(sources: list, recipients: list,
 
         metadata = [Metadata(None, None, None)]
 
-        src_validated = [Result(fngr.fngr(src), metadata)
+        src_validated = [Result(fngr.fngr(src),
+                         [Metadata(contig, 0, len(src[contig])) for contig in src])
                          for src in sources]
 
-        recip_validated = [Result(fngr.fngr(rec), metadata)
-                           for rec in recipients]
+        recip_validated = [Result(fngr.fngr(rec), metadata) for rec in recipients]
 
         return src_validated, recip_validated
 

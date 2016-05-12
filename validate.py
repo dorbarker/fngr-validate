@@ -32,6 +32,9 @@ def arguments():
                        metavar='TAXONOMY', required=True,
                        help='Taxonomic name of target species')
 
+    parms.add_argument('--foreign', type=str.lower, metavar='TAXONOMY',
+                       required=True, help='Taxonomic name of outgroup')
+
     parms.add_argument('--contig-mean', type=float, metavar='NUM',
                        required=True, help='Mean size of synthetic contigs')
 
@@ -96,8 +99,15 @@ def main():
                                   iterations=args.iterations,
                                   fngr=fngr)
 
-    expected = {result: compare.create_expected(results[result], 'ecoli')
+
+    utilities.user_msg('')
+    expected = {result: compare.create_expected(results[result], args.foreign)
                 for result in results}
-    print(expected)
+
+    fngr_output = {res: [r.result for r  in results[res]] for res in results}
+
+    for i in compare.compare_each_genome(expected, fngr_output):
+        pass#print(type(i))
+
 if __name__ == '__main__':
     main()
