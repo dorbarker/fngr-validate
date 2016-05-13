@@ -4,7 +4,6 @@ import json
 Pair = collections.namedtuple('Pair', ['start', 'stop'])
 
 def closest_indices(contig_expected):
-    print('Contig expected:', contig_expected)
 
     def _closest(start, stop):
 
@@ -48,12 +47,14 @@ def coverage(found, closest):
 
 def compare_each_genome(expecteds: dict, results: dict):
 
+    out = {}
     for key in results:
-        print(key)
-        yield [compare(expect, json.loads(res))
-               for expect, res in zip(expecteds[key], results[key])]
 
-        print('')
+        out[key] = [compare(expect, json.loads(res))
+                    for expect, res in zip(expecteds[key], results[key])]
+
+    return out
+
 def compare(expected: dict, report: dict) -> dict:
 
     comparison = {'calls': {'n_loci': 0,
@@ -63,8 +64,6 @@ def compare(expected: dict, report: dict) -> dict:
                             'false_negative': 0},
                   'loci': collections.defaultdict(list)}
 
-    print(sorted(report))
-    print(sorted(expected['contigs']))
     for contig in filter(None, set(report) | set(expected['contigs'])):
 
         if contig in report:
@@ -80,7 +79,8 @@ def compare(expected: dict, report: dict) -> dict:
             comparison['calls']['n_loci'] += 1
             comparison['calls']['false_negative'] += 1
 
-    print(comparison)
+    return comparison
+
 def compare_hit(contig: str, expected: dict, report: dict, comparison: dict):
 
     find_closest = closest_indices(expected['contigs'][contig])
@@ -90,10 +90,10 @@ def compare_hit(contig: str, expected: dict, report: dict, comparison: dict):
         found_index = Pair(locus['index']['start'], locus['index']['stop'])
 
         closest = find_closest(found_index.start, found_index.stop)
-        print('Found:', found_index, 'Closest:', closest)
 
         indices = {'observed': locus['index'],
-                   'closest_expected': closest,
+                   'closest_expected': {'start': closest.start,
+                                        'stop': closest.stop},
                    'coverage': coverage(found_index, closest)}
 
         organism = {'expected': expected['organism'],
@@ -129,3 +129,14 @@ def create_expected(results: list, organism: str) -> list:
         return expected
 
     return [parse_metadata(result.metadata) for result in results]
+
+def metacompare(comparisons: dict):
+
+    metacomparison = collections.defaultdict(int)
+
+    for comparison in comparisons:
+        for genome in comparisons[comparison]:
+            for key in genome['calls']:
+                metacomparison[key] += genome['calls'][key]
+
+    return metacomparison

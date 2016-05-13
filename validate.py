@@ -106,8 +106,15 @@ def main():
 
     fngr_output = {res: [r.result for r  in results[res]] for res in results}
 
-    for i in compare.compare_each_genome(expected, fngr_output):
-        pass#print(type(i))
+    comparisons = compare.compare_each_genome(expected, fngr_output)
+    import pprint
+    pp = pprint.PrettyPrinter(indent =2)
+    for i in comparisons:
+        pp.pprint(i)
+        pp.pprint(comparisons[i])
+        print('')
 
+    metacomparison = compare.metacompare(comparisons)
+    pp.pprint(metacomparison)
 if __name__ == '__main__':
     main()
