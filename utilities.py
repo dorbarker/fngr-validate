@@ -80,7 +80,7 @@ def prepare_genomes(func, contig_mean: float, contig_stdev: float):
 def run_fngr(func, fngr):
 
     @wraps(func)
-    def wrapper(*readied):
+    def wrapper():
 
         readied = func()
         return tuple(Result(fngr.fngr(ready.genome), ready.metadata)

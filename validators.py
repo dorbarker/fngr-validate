@@ -151,12 +151,12 @@ def validate(sources: list, recipients: list,
     source_validated, recipient_validated = validate_groups(sources,
                                                             recipients)
     user_msg('Validating insertions')
-    insertion_validated = validate_insertions(sources, recipients,
+    insertion_validated, = validate_insertions(sources, recipients,
                                                gene_mean, gene_stdev,
                                                iterations)
 
     user_msg('Validating contamination')
-    contamination_validated = validate_contamination(sources, recipients,
+    contamination_validated, = validate_contamination(sources, recipients,
                                                       iterations)
 
     return {'sources_clean': source_validated,
