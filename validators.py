@@ -1,6 +1,7 @@
 from functools import partial
 from itertools import dropwhile
-from utilities import prepare_genomes, Metadata, Result, user_msg
+from utilities import prepare_genomes, run_fngr, user_msg, \
+                      Metadata, Ready, Result
 import random
 
 def validate(sources: list, recipients: list,
@@ -12,22 +13,26 @@ def validate(sources: list, recipients: list,
                                       contig_mean=contig_mean,
                                       contig_stdev=contig_stdev)
 
+    fngr_search = partial(run_fngr, fngr)
+
+    @fngr_search
     @duplicate_and_contigify
     def validate_groups(sources: list, recipients: list) -> list:
         """Use a set of high quality genomes to look for any spurious
         identification of 'foreign' sequence
         """
 
-        metadata = [Metadata(None, None, None)]
+        rec_metadata = [Metadata(None, None, None)]
+        src_metadata = lambda src: [Metadata(contig, 0, len(src[contig])
+                                    for contig in src]
 
-        src_validated = [Result(fngr.fngr(src),
-                         [Metadata(contig, 0, len(src[contig])) for contig in src])
-                         for src in sources]
+        src_validated = [Ready(src, src_metadata(src)) for src in sources]
 
-        recip_validated = [Result(fngr.fngr(rec), metadata) for rec in recipients]
+        rec_validated = [Ready(rec, rec_metadata) for rec in recipients]
 
-        return src_validated, recip_validated
+        return src_validated, rec_validated
 
+    @fngr_search
     @duplicate_and_contigify
     def validate_insertions(sources: list, recipients: list, mean: float,
                             stdev: float, iterations: int) -> list:
@@ -67,7 +72,7 @@ def validate(sources: list, recipients: list,
 
                     insertion_metadata.append(Metadata(*metadata))
 
-                return Result(fngr.fngr(recipient), insertion_metadata)
+                return Ready(recipient, insertion_metadata)
 
             return _func
 
@@ -93,6 +98,7 @@ def validate(sources: list, recipients: list,
         first, last = contig[:pivot], contig[pivot:]
         return ''.join((first, transposon, last))
 
+    @fngr_search
     @duplicate_and_contigify
     def validate_contamination(sources: list, recipients: list,
                                iterations: int) -> list:
@@ -116,7 +122,7 @@ def validate(sources: list, recipients: list,
 
                     contamination_metadata.append(Metadata(contig, 0, length))
 
-                return Result(fngr.fngr(recipient), contamination_metadata)
+                return Ready(recipient, contamination_metadata)
             return _func
 
         add_contamination = contaminate_func(sources, iterations)

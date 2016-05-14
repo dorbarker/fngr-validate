@@ -12,6 +12,8 @@ import sys
 
 Metadata = collections.namedtuple('Metadata', ['contig', 'start', 'length'])
 
+Ready = collections.namedtuple('Ready', ['genome', 'metadata'])
+
 Result = collections.namedtuple('Results', ['result', 'metadata'])
 
 user_msg = partial(print, file=sys.stderr)
@@ -73,6 +75,17 @@ def prepare_genomes(func, contig_mean: float, contig_stdev: float):
                        for genome in load_genomes(recipients)]
 
         return func(sources_, recipients_, *args)
+    return wrapper
+
+def run_fngr(func, fngr):
+
+    @wraps(func)
+    def wrapper(*readied):
+
+        readied = func()
+        return tuple(Result(fngr.fngr(ready.genome), ready.metadata)
+                     for ready in readied)
+
     return wrapper
 
 class Fngr(object):
