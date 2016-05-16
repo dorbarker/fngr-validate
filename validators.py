@@ -13,17 +13,17 @@ def validate(sources: list, recipients: list,
                                       contig_mean=contig_mean,
                                       contig_stdev=contig_stdev)
 
-    fngr_search = partial(run_fngr, fngr)
+    fngr_search = partial(run_fngr, fngr=fngr)
 
     @fngr_search
     @duplicate_and_contigify
-    def validate_groups(sources: list, recipients: list) -> list:
+    def validate_groups(sources: list, recipients: list) -> (list, list):
         """Use a set of high quality genomes to look for any spurious
         identification of 'foreign' sequence
         """
 
         rec_metadata = [Metadata(None, None, None)]
-        src_metadata = lambda src: [Metadata(contig, 0, len(src[contig])
+        src_metadata = lambda src: [Metadata(contig, 0, len(src[contig]))
                                     for contig in src]
 
         src_validated = [Ready(src, src_metadata(src)) for src in sources]
@@ -79,7 +79,7 @@ def validate(sources: list, recipients: list,
         insert = prepare_insert_func(sources, mean, stdev, iterations)
 
         return [insert(recipient, seed)
-                for seed, recipient in enumerate(recipients)]
+                for seed, recipient in enumerate(recipients)],
 
     def select_subsequence(sequence: str,
                            mean: float, stdev: float) -> (str, int):
@@ -127,7 +127,7 @@ def validate(sources: list, recipients: list,
 
         add_contamination = contaminate_func(sources, iterations)
 
-        return [add_contamination(r, s) for s, r in enumerate(recipients)]
+        return [add_contamination(r, s) for s, r in enumerate(recipients)],
 
     def contaminate(contaminant: str, genome: dict) -> (dict, str, int):
         """Add a contamination contig to genome"""

@@ -80,11 +80,19 @@ def prepare_genomes(func, contig_mean: float, contig_stdev: float):
 def run_fngr(func, fngr):
 
     @wraps(func)
-    def wrapper():
+    def wrapper(*args, **kwargs):
 
-        readied = func()
-        return tuple(Result(fngr.fngr(ready.genome), ready.metadata)
-                     for ready in readied)
+        readied = func(*args, **kwargs)
+        o = []
+
+        for t in readied:
+
+            l = []
+            for ready in t:
+                r = Result(fngr.fngr(ready.genome), ready.metadata)
+                l.append(r)
+            o.append(l)
+        return tuple(o)
 
     return wrapper
 

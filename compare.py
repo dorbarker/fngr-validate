@@ -127,7 +127,8 @@ def create_expected(results: list, organism: str) -> list:
             expected['contigs'][m.contig].append(p)
 
         return expected
-
+    print('results:', type(results))
+    print('inside_results:', [type(x) for x in results])
     return [parse_metadata(result.metadata) for result in results]
 
 def metacompare(comparisons: dict):
@@ -136,6 +137,7 @@ def metacompare(comparisons: dict):
 
     for comparison in comparisons:
         for genome in comparisons[comparison]:
+            metacomparison['genomes'] += 1
             for key in genome['calls']:
                 metacomparison[key] += genome['calls'][key]
 
